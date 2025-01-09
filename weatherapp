@@ -1,0 +1,75 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLPermission;
+
+public class RestApiConsumer {
+
+    private static final String API_URL = "https://api.openweathermap.org/data/2.5/weather";
+    private static final String API_KEY = "YOUR_API_KEY"; // Replace with your API key
+
+    public static void main(String[] args) {
+        String city = "London"; // You can modify the city name here
+        try {
+            // Make HTTP GET request to fetch weather data
+            String jsonResponse = fetchWeatherData(city);
+
+            // Print the raw JSON response
+            System.out.println("Raw JSON Response:");
+            System.out.println(jsonResponse);
+
+            // Extract and display relevant details
+            parseWeatherData(jsonResponse);
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static String fetchWeatherData(String city) throws Exception {
+        String urlString = API_URL + "?q=" + city + "&appid=" + API_KEY + "&units=metric";
+        URL url = new URL(urlString);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+        // Set request properties
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Accept", "application/json");
+
+        // Check the response code
+        int responseCode = connection.getResponseCode();
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            throw new RuntimeException("HTTP GET Request Failed with Error code: " + responseCode);
+        }
+
+        // Read the response
+        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        StringBuilder response = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
+        }
+        reader.close();
+
+        return response.toString();
+    }
+
+    private static void parseWeatherData(String jsonResponse) {
+        try {
+            // Using basic string operations to parse JSON
+            String tempKey = "\"temp\":";
+            String weatherKey = "\"description\":\"";
+
+            int tempIndex = jsonResponse.indexOf(tempKey) + tempKey.length();
+            double temperature = Double.parseDouble(jsonResponse.substring(tempIndex, jsonResponse.indexOf(",", tempIndex)));
+
+            int weatherIndex = jsonResponse.indexOf(weatherKey) + weatherKey.length();
+            String weatherDescription = jsonResponse.substring(weatherIndex, jsonResponse.indexOf("\"", weatherIndex));
+
+            System.out.println("\nParsed Weather Data:");
+            System.out.println("Temperature: " + temperature + "°C");
+            System.out.println("Description: " + weatherDescription);
+        } catch (Exception e) {
+            System.err.println("Error parsing JSON response: " + e.getMessage());
+        }
+    }
+}
